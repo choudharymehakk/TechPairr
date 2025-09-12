@@ -1,0 +1,6 @@
+Project_ID,Faculty_ID,Title,Required_Skills
+P1,F1,"AI Chatbot for Healthcare","Python, Machine Learning, NLP"
+P2,F2,"E-Commerce Web Platform","Web Development, React, Node.js"
+P3,F3,"Network Security Analysis","Cybersecurity, Networking, Linux"
+P4,F4,"Data Visualization Dashboard","Data Science, Python, SQL"
+P5,F5,"Smart Mobile Learning App","Mobile App Development, Flutter, Firebase"
