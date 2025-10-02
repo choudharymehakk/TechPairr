@@ -1,0 +1,1 @@
+TO activate virt env ->  source venv/Scripts/activate

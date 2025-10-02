@@ -1,0 +1,259 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from supabase import create_client
+from config import SUPABASE_URL, SUPABASE_KEY
+import jwt
+import bcrypt
+from datetime import datetime, timedelta
+
+app = Flask(__name__)
+CORS(app)
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'OK', 'service': 'Mentora API'})
+
+@app.route('/api/test-db', methods=['GET'])
+def test_database():
+    try:
+        result = supabase.table('users').select('*').limit(1).execute()
+        return jsonify({
+            'status': 'success',
+            'message': 'Database connection successful',
+            'data': result.data
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    try:
+        data = request.json
+        email = data.get('email')
+        password = data.get('password')
+        full_name = data.get('full_name')
+        user_type = data.get('user_type')  # student, faculty, industry
+        
+        # Hash password
+        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        
+        # Insert user
+        result = supabase.table('users').insert({
+            'email': email,
+            'password_hash': password_hash,
+            'full_name': full_name,
+            'user_type': user_type
+        }).execute()
+        
+        user_id = result.data[0]['id']
+        
+        # Generate JWT token
+        token = jwt.encode({
+            'user_id': user_id,
+            'email': email,
+            'user_type': user_type,
+            'exp': datetime.utcnow() + timedelta(days=7)
+        }, app.config.get('JWT_SECRET', 'your-secret'), algorithm='HS256')
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'User registered successfully',
+            'token': token,
+            'user': {
+                'id': user_id,
+                'email': email,
+                'full_name': full_name,
+                'user_type': user_type
+            }
+        }), 201
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 400
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    try:
+        data = request.json
+        email = data.get('email')
+        password = data.get('password')
+        
+        # Get user from database
+        result = supabase.table('users').select('*').eq('email', email).execute()
+        
+        if not result.data:
+            return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
+        
+        user = result.data[0]
+        
+        # Check password
+        if not bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+            return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
+        
+        # Generate JWT token
+        token = jwt.encode({
+            'user_id': user['id'],
+            'email': user['email'],
+            'user_type': user['user_type'],
+            'exp': datetime.utcnow() + timedelta(days=7)
+        }, app.config.get('JWT_SECRET', 'your-secret'), algorithm='HS256')
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Login successful',
+            'token': token,
+            'user': {
+                'id': user['id'],
+                'email': user['email'],
+                'full_name': user['full_name'],
+                'user_type': user['user_type']
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 400
+
+@app.route('/api/profile/student', methods=['POST'])
+def create_student_profile():
+    try:
+        data = request.json
+        user_id = data.get('user_id')
+        
+        profile_data = {
+            'user_id': user_id,
+            'student_id': data.get('student_id'),
+            'department': data.get('department'),
+            'year_of_study': data.get('year_of_study'),
+            'cgpa': data.get('cgpa'),
+            'skills': data.get('skills', []),
+            'interests': data.get('interests', []),
+            'career_goals': data.get('career_goals', []),
+            'portfolio_url': data.get('portfolio_url'),
+            'github_url': data.get('github_url'),
+            'bio': data.get('bio'),
+            'collaboration_preference': data.get('collaboration_preference'),
+            'time_commitment': data.get('time_commitment')
+        }
+        
+        result = supabase.table('student_profiles').insert(profile_data).execute()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Student profile created successfully',
+            'data': result.data[0]
+        }), 201
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 400
+
+@app.route('/api/profile/faculty', methods=['POST'])
+def create_faculty_profile():
+    try:
+        data = request.json
+        user_id = data.get('user_id')
+        
+        profile_data = {
+            'user_id': user_id,
+            'employee_id': data.get('employee_id'),
+            'department': data.get('department'),
+            'designation': data.get('designation'),
+            'research_areas': data.get('research_areas', []),
+            'expertise': data.get('expertise', []),
+            'mentoring_capacity': data.get('mentoring_capacity', 3),
+            'mentoring_style': data.get('mentoring_style'),
+            'available_resources': data.get('available_resources', []),
+            'lab_access': data.get('lab_access', False),
+            'funding_available': data.get('funding_available', False),
+            'open_to_student_ideas': data.get('open_to_student_ideas', True),
+            'bio': data.get('bio'),
+            'google_scholar': data.get('google_scholar')
+        }
+        
+        result = supabase.table('faculty_profiles').insert(profile_data).execute()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Faculty profile created successfully',
+            'data': result.data[0]
+        }), 201
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 400
+
+@app.route('/api/profile/industry', methods=['POST'])
+def create_industry_profile():
+    try:
+        data = request.json
+        user_id = data.get('user_id')
+        
+        profile_data = {
+            'user_id': user_id,
+            'company': data.get('company'),
+            'position': data.get('position'),
+            'industry_domain': data.get('industry_domain'),
+            'expertise': data.get('expertise', []),
+            'years_experience': data.get('years_experience'),
+            'mentoring_capacity': data.get('mentoring_capacity', 8),
+            'available_time': data.get('available_time'),
+            'mentoring_focus': data.get('mentoring_focus', []),
+            'linkedin_profile': data.get('linkedin_profile'),
+            'company_website': data.get('company_website'),
+            'willing_to_provide': data.get('willing_to_provide', []),
+            'bio': data.get('bio')
+        }
+        
+        result = supabase.table('industry_profiles').insert(profile_data).execute()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Industry profile created successfully',
+            'data': result.data[0]
+        }), 201
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 400
+
+@app.route('/api/profile/<user_type>/<user_id>', methods=['GET'])
+def get_profile(user_type, user_id):
+    try:
+        table_name = f"{user_type}_profiles"
+        result = supabase.table(table_name).select('*').eq('user_id', user_id).execute()
+        
+        if result.data:
+            return jsonify({
+                'status': 'success',
+                'data': result.data[0]
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Profile not found'
+            }), 404
+            
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 400
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
