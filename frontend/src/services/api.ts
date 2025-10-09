@@ -35,3 +35,24 @@ export const getProfile = (userType: string, userId: string) => api.get(`/profil
 // Check if profile exists
 export const checkProfileExists = (userType: string, userId: string) => 
   api.get(`/profile/${userType}/${userId}`);
+
+// ============================================
+// PROJECT API
+// ============================================
+
+export const createProject = (data: any) => api.post('/projects', data);
+export const getProjects = (params?: any) => api.get('/projects', { params });
+export const getProject = (projectId: string) => api.get(`/projects/${projectId}`);
+export const getUserProjects = (userId: string) => api.get(`/projects/user/${userId}`);
+export const updateProject = (projectId: string, data: any) => api.put(`/projects/${projectId}`, data);
+export const deleteProject = (projectId: string) => api.delete(`/projects/${projectId}`);
+
+// ============================================
+// APPLICATION API
+// ============================================
+
+export const createApplication = (data: any) => api.post('/applications', data);
+export const getProjectApplications = (projectId: string) => api.get(`/applications/project/${projectId}`);
+export const getUserApplications = (userId: string) => api.get(`/applications/user/${userId}`);
+export const updateApplicationStatus = (applicationId: string, status: string) => 
+  api.put(`/applications/${applicationId}`, { status });

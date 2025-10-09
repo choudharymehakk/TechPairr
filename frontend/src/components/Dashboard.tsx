@@ -52,7 +52,7 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen w-full flex flex-col items-center justify-center p-4" style={{
       background: userInfo.gradient
     }}>
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-6xl">
         {/* Header */}
         <div className="text-center mb-12">
           <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${userInfo.buttonGradient} rounded-full mb-6 shadow-2xl`}>
@@ -69,7 +69,8 @@ const Dashboard: React.FC = () => {
         {/* Quick Actions */}
         <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 mb-8 border border-white/50 shadow-2xl">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Profile Setup */}
             <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg hover:shadow-xl transition-all duration-200">
               <div className="text-3xl mb-3">📝</div>
               <h3 className="text-gray-800 font-semibold mb-2">Profile Setup</h3>
@@ -77,11 +78,24 @@ const Dashboard: React.FC = () => {
                 Update Profile
               </a>
             </div>
+            
+            {/* Create Project - NEW */}
+            <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg hover:shadow-xl transition-all duration-200">
+              <div className="text-3xl mb-3">➕</div>
+              <h3 className="text-gray-800 font-semibold mb-2">Create Project</h3>
+              <a href="/create-project" className="text-blue-600 hover:text-blue-500 underline font-medium">
+                Post New Project
+              </a>
+            </div>
+            
+            {/* Browse */}
             <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg">
               <div className="text-3xl mb-3">🔍</div>
               <h3 className="text-gray-800 font-semibold mb-2">Browse</h3>
               <p className="text-gray-500 text-sm">Coming Soon</p>
             </div>
+            
+            {/* Analytics */}
             <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg">
               <div className="text-3xl mb-3">📊</div>
               <h3 className="text-gray-800 font-semibold mb-2">Analytics</h3>

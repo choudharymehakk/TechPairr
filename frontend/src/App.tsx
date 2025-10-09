@@ -5,6 +5,7 @@ import Register from './pages/Register'
 import Login from './pages/Login'
 import Dashboard from './components/Dashboard'
 import ProfileSetup from './pages/ProfileSetup'
+import CreateProject from './pages/CreateProject'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile-setup" element={<ProfileSetup />} />
+          <Route path="/create-project" element={<CreateProject />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
