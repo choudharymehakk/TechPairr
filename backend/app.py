@@ -416,6 +416,7 @@ def delete_project(project_id):
 def create_application():
     try:
         data = request.json
+        print("Received application data:", data) 
         
         application_data = {
             'project_id': data.get('project_id'),
@@ -428,7 +429,11 @@ def create_application():
             'status': 'pending'
         }
         
+        print("Prepared application data:", application_data)
+        
         result = supabase.table('applications').insert(application_data).execute()
+        
+        print("Insert result:", result) 
         
         return jsonify({
             'status': 'success',
@@ -437,10 +442,15 @@ def create_application():
         }), 201
         
     except Exception as e:
+        print("Error creating application:", str(e))  
+        import traceback
+        traceback.print_exc()  
+        
         return jsonify({
             'status': 'error',
             'message': str(e)
         }), 400
+
 
 @app.route('/api/applications/project/<project_id>', methods=['GET'])
 def get_project_applications(project_id):

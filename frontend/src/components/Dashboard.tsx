@@ -79,7 +79,7 @@ const Dashboard: React.FC = () => {
               </a>
             </div>
             
-            {/* Create Project - NEW */}
+            {/* Create Project*/}
             <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg hover:shadow-xl transition-all duration-200">
               <div className="text-3xl mb-3">➕</div>
               <h3 className="text-gray-800 font-semibold mb-2">Create Project</h3>
@@ -89,12 +89,14 @@ const Dashboard: React.FC = () => {
             </div>
             
             {/* Browse */}
-            <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg">
+            <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg hover:shadow-xl transition-all duration-200">
               <div className="text-3xl mb-3">🔍</div>
-              <h3 className="text-gray-800 font-semibold mb-2">Browse</h3>
-              <p className="text-gray-500 text-sm">Coming Soon</p>
+              <h3 className="text-gray-800 font-semibold mb-2">Browse Projects</h3>
+              <a href="/browse-projects" className="text-blue-600 hover:text-blue-500 underline font-medium">
+                Explore All Projects
+              </a>
             </div>
-            
+
             {/* Analytics */}
             <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg">
               <div className="text-3xl mb-3">📊</div>
