@@ -455,18 +455,49 @@ def create_application():
 @app.route('/api/applications/project/<project_id>', methods=['GET'])
 def get_project_applications(project_id):
     try:
-        result = supabase.table('applications').select('*').eq('project_id', project_id).order('applied_at', desc=True).execute()
+        # Get applications for this project
+        applications = supabase.table('applications').select('*').eq('project_id', project_id).order('applied_at', desc=True).execute()
+        
+        # Fetch applicant details for each application
+        applications_with_users = []
+        for app in applications.data:
+            applicant_id = app['applicant_id']
+            applicant_type = app['applicant_type']
+            
+            # Get user basic info
+            user = supabase.table('users').select('full_name, email, user_type').eq('id', applicant_id).execute()
+            
+            # Get profile info based on user type
+            profile = None
+            if applicant_type == 'student':
+                profile = supabase.table('student_profiles').select('*').eq('user_id', applicant_id).execute()
+            elif applicant_type == 'faculty':
+                profile = supabase.table('faculty_profiles').select('*').eq('user_id', applicant_id).execute()
+            elif applicant_type == 'industry':
+                profile = supabase.table('industry_profiles').select('*').eq('user_id', applicant_id).execute()
+            
+            app_data = {
+                **app,
+                'applicant': user.data[0] if user.data else None,
+                'applicant_profile': profile.data[0] if profile and profile.data else None
+            }
+            applications_with_users.append(app_data)
         
         return jsonify({
             'status': 'success',
-            'data': result.data
+            'data': applications_with_users
         })
         
     except Exception as e:
+        print("Error fetching project applications:", str(e))
+        import traceback
+        traceback.print_exc()
+        
         return jsonify({
             'status': 'error',
             'message': str(e)
         }), 400
+
 
 @app.route('/api/applications/user/<user_id>', methods=['GET'])
 def get_user_applications(user_id):
@@ -503,7 +534,6 @@ def update_application_status(application_id):
             'status': 'error',
             'message': str(e)
         }), 400
-
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

@@ -9,6 +9,8 @@ import CreateProject from './pages/CreateProject'
 import LandingPage from './pages/LandingPage'
 import BrowseProjects from './pages/BrowseProjects'
 import ProjectDetails from './pages/ProjectDetails'
+import MyApplications from './pages/MyApplications'
+import ReceivedApplications from './pages/ReceivedApplications'
 
 function App() {
   return (
@@ -23,6 +25,8 @@ function App() {
           <Route path="/create-project" element={<CreateProject />} />
           <Route path="/browse-projects" element={<BrowseProjects />} />
           <Route path="/project/:projectId" element={<ProjectDetails />} />
+          <Route path="/my-applications" element={<MyApplications />} />
+          <Route path="/received-applications" element={<ReceivedApplications />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
