@@ -1,13 +1,9 @@
-from app import create_app
-import os
+from flask import Flask, jsonify
+from model.modell import get_top_matches
 
-# Create Flask app
-app = create_app()
+app = Flask(__name__)
 
-if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
-    app.run(
-        host='0.0.0.0',
-        port=port, 
-        debug=True
-    )
+@app.route('/api/matches', methods=['GET'])
+def matches():
+    data = get_top_matches(top_n=3)
+    return jsonify(data)
