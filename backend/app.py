@@ -535,5 +535,47 @@ def update_application_status(application_id):
             'message': str(e)
         }), 400
 
+@app.route('/api/projects/<project_id>/owner', methods=['GET'])
+def get_project_owner(project_id):
+    try:
+        # Get project to find creator
+        project = supabase.table('projects').select('creator_id, creator_type').eq('id', project_id).execute()
+        
+        if not project.data:
+            return jsonify({'status': 'error', 'message': 'Project not found'}), 404
+        
+        creator_id = project.data[0]['creator_id']
+        creator_type = project.data[0]['creator_type']
+        
+        # Get user basic info
+        user = supabase.table('users').select('full_name, email, user_type').eq('id', creator_id).execute()
+        
+        # Get profile info based on user type
+        profile = None
+        if creator_type == 'student':
+            profile = supabase.table('student_profiles').select('*').eq('user_id', creator_id).execute()
+        elif creator_type == 'faculty':
+            profile = supabase.table('faculty_profiles').select('*').eq('user_id', creator_id).execute()
+        elif creator_type == 'industry':
+            profile = supabase.table('industry_profiles').select('*').eq('user_id', creator_id).execute()
+        
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'user': user.data[0] if user.data else None,
+                'profile': profile.data[0] if profile and profile.data else None
+            }
+        })
+        
+    except Exception as e:
+        print("Error fetching project owner:", str(e))
+        import traceback
+        traceback.print_exc()
+        
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 400
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

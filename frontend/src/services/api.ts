@@ -56,3 +56,8 @@ export const getProjectApplications = (projectId: string) => api.get(`/applicati
 export const getUserApplications = (userId: string) => api.get(`/applications/user/${userId}`);
 export const updateApplicationStatus = (applicationId: string, status: string) => 
   api.put(`/applications/${applicationId}`, { status });
+
+// Get project owner details
+export const getProjectOwner = (projectId: string) => {
+  return api.get(`/projects/${projectId}/owner`);
+};
