@@ -61,3 +61,8 @@ export const updateApplicationStatus = (applicationId: string, status: string) =
 export const getProjectOwner = (projectId: string) => {
   return api.get(`/projects/${projectId}/owner`);
 };
+
+// Check if user already applied to a project
+export const checkExistingApplication = (projectId: string, userId: string) => {
+  return api.get(`/applications/check/${projectId}/${userId}`);
+};

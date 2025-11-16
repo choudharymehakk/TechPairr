@@ -577,5 +577,35 @@ def get_project_owner(project_id):
             'message': str(e)
         }), 400
 
+@app.route('/api/applications/check/<project_id>/<user_id>', methods=['GET'])
+def check_existing_application(project_id, user_id):
+    try:
+        # Check if user already applied to this project
+        existing = supabase.table('applications').select('*').eq('project_id', project_id).eq('applicant_id', user_id).execute()
+        
+        if existing.data and len(existing.data) > 0:
+            return jsonify({
+                'status': 'success',
+                'exists': True,
+                'application': existing.data[0]
+            })
+        else:
+            return jsonify({
+                'status': 'success',
+                'exists': False,
+                'application': None
+            })
+        
+    except Exception as e:
+        print("Error checking application:", str(e))
+        import traceback
+        traceback.print_exc()
+        
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 400
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

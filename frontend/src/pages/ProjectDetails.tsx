@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getProject, createApplication } from '../services/api';
+import { getProject, createApplication, checkExistingApplication } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Project {
@@ -38,12 +38,20 @@ const ProjectDetails: React.FC = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [existingApplication, setExistingApplication] = useState<any>(null);
+  const [checkingApplication, setCheckingApplication] = useState(false);
 
   useEffect(() => {
     if (projectId) {
       fetchProject();
     }
   }, [projectId]);
+
+  useEffect(() => {
+    if (projectId && user && canApply()) {
+      checkForExistingApplication();
+    }
+  }, [projectId, user, project]);
 
   const fetchProject = async () => {
     try {
@@ -53,6 +61,20 @@ const ProjectDetails: React.FC = () => {
     } catch (error) {
       console.error('Error fetching project:', error);
       setLoading(false);
+    }
+  };
+
+  const checkForExistingApplication = async () => {
+    setCheckingApplication(true);
+    try {
+      const response = await checkExistingApplication(projectId!, user!.id);
+      if (response.data.exists) {
+        setExistingApplication(response.data.application);
+      }
+    } catch (error) {
+      console.error('Error checking application:', error);
+    } finally {
+      setCheckingApplication(false);
     }
   };
 
@@ -104,17 +126,27 @@ const ProjectDetails: React.FC = () => {
         ...applicationData
       };
 
+      console.log('Submitting application:', data);
+
       const response = await createApplication(data);
+      
+      console.log('Response:', response);
       
       if (response.data.status === 'success') {
         setMessage('Application submitted successfully!');
         setShowApplicationForm(false);
+        // Refresh to show the "Already Applied" message
+        checkForExistingApplication();
         setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
+          setMessage('');
+        }, 3000);
       }
-    } catch (error) {
-      setMessage('Error submitting application. Please try again.');
+    } catch (error: any) {
+      console.error('Full error:', error);
+      console.error('Error response:', error.response);
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Error submitting application';
+      setMessage(errorMessage + '. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -212,6 +244,15 @@ const ProjectDetails: React.FC = () => {
 
       {/* Main Content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Success/Error Message */}
+        {message && (
+          <div className={`mb-6 p-4 rounded-xl ${
+            message.includes('Error') ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'
+          }`}>
+            <p className="font-medium text-center">{message}</p>
+          </div>
+        )}
+
         {/* Project Header */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white">
@@ -344,7 +385,7 @@ const ProjectDetails: React.FC = () => {
               </div>
             </div>
 
-            {/* Apply Button */}
+            {/* Apply Button Section */}
             {!user && (
               <div className="mt-8 text-center bg-blue-50 rounded-xl p-6">
                 <p className="text-gray-700 mb-4">Want to apply to this project?</p>
@@ -359,11 +400,105 @@ const ProjectDetails: React.FC = () => {
 
             {user && user.id === project.creator_id && (
               <div className="mt-8 text-center bg-green-50 rounded-xl p-6">
-                <p className="text-green-700 font-medium">This is your project</p>
+                <p className="text-green-700 font-medium mb-3">This is your project</p>
+                <button
+                  onClick={() => navigate('/received-applications')}
+                  className="px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
+                >
+                  Manage Applications
+                </button>
               </div>
             )}
 
-            {user && canApply() && !showApplicationForm && (
+            {user && canApply() && existingApplication && (
+              <div className="mt-8">
+                {existingApplication.status === 'pending' && (
+                  <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-6 text-center">
+                    <div className="flex items-center justify-center space-x-2 mb-3">
+                      <svg className="w-8 h-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h4 className="text-xl font-bold text-yellow-900">⏳ Application Pending</h4>
+                    </div>
+                    <p className="text-yellow-800 mb-4">
+                      You've already applied to this project. The project owner is reviewing your application.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <button
+                        onClick={() => navigate('/my-applications')}
+                        className="px-6 py-3 bg-yellow-600 text-white rounded-xl font-semibold hover:bg-yellow-700 transition-colors"
+                      >
+                        View My Applications
+                      </button>
+                      <button
+                        onClick={() => navigate('/browse-projects')}
+                        className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+                      >
+                        Browse Other Projects
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {existingApplication.status === 'accepted' && (
+                  <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6 text-center">
+                    <div className="flex items-center justify-center space-x-2 mb-3">
+                      <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h4 className="text-xl font-bold text-green-900">✅ Application Accepted!</h4>
+                    </div>
+                    <p className="text-green-800 mb-4">
+                      Congratulations! Your application has been accepted. You're now part of this project.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <button
+                        onClick={() => navigate('/my-applications')}
+                        className="px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
+                      >
+                        View Contact Details
+                      </button>
+                      <button
+                        onClick={() => navigate('/active-projects')}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        View Active Projects
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {existingApplication.status === 'rejected' && (
+                  <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6 text-center">
+                    <div className="flex items-center justify-center space-x-2 mb-3">
+                      <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h4 className="text-xl font-bold text-red-900">❌ Application Not Accepted</h4>
+                    </div>
+                    <p className="text-red-800 mb-4">
+                      Unfortunately, your application was not accepted for this project. Don't give up - keep exploring other opportunities!
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <button
+                        onClick={() => navigate('/browse-projects')}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        Find Other Projects
+                      </button>
+                      <button
+                        onClick={() => navigate('/my-applications')}
+                        className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+                      >
+                        View My Applications
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {user && canApply() && !existingApplication && !showApplicationForm && !checkingApplication && (
               <div className="mt-8">
                 <button
                   onClick={() => setShowApplicationForm(true)}
@@ -371,6 +506,13 @@ const ProjectDetails: React.FC = () => {
                 >
                   {getApplicationButtonText()}
                 </button>
+              </div>
+            )}
+
+            {checkingApplication && (
+              <div className="mt-8 text-center bg-gray-50 rounded-xl p-6">
+                <div className="animate-spin w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full mx-auto mb-3"></div>
+                <p className="text-gray-600">Checking application status...</p>
               </div>
             )}
 
@@ -439,14 +581,6 @@ const ProjectDetails: React.FC = () => {
                       Cancel
                     </button>
                   </div>
-
-                  {message && (
-                    <div className={`text-center font-medium ${
-                      message.includes('Error') ? 'text-red-600' : 'text-green-600'
-                    }`}>
-                      {message}
-                    </div>
-                  )}
                 </form>
               </div>
             )}
