@@ -12,7 +12,7 @@ import ProjectDetails from './pages/ProjectDetails'
 import MyApplications from './pages/MyApplications'
 import ReceivedApplications from './pages/ReceivedApplications'
 import ActiveProjects from './pages/ActiveProjects'
-
+import MyProjects from './pages/MyProjects'
 
 function App() {
   return (
@@ -30,6 +30,7 @@ function App() {
           <Route path="/my-applications" element={<MyApplications />} />
           <Route path="/received-applications" element={<ReceivedApplications />} />
           <Route path="/active-projects" element={<ActiveProjects />} />
+          <Route path="/my-projects" element={<MyProjects />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -6,14 +6,18 @@ import jwt
 import bcrypt
 from datetime import datetime, timedelta
 
+
 app = Flask(__name__)
 CORS(app)
 
+
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'OK', 'service': 'Mentora API'})
+
 
 @app.route('/api/test-db', methods=['GET'])
 def test_database():
@@ -29,6 +33,7 @@ def test_database():
             'status': 'error',
             'message': str(e)
         }), 500
+
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -78,6 +83,7 @@ def register():
             'message': str(e)
         }), 400
 
+
 @app.route('/api/login', methods=['POST'])
 def login():
     try:
@@ -123,6 +129,11 @@ def login():
             'message': str(e)
         }), 400
 
+
+# ============================================
+# PROFILE ENDPOINTS
+# ============================================
+
 @app.route('/api/profile/student', methods=['POST'])
 def create_student_profile():
     try:
@@ -158,6 +169,7 @@ def create_student_profile():
             'status': 'error',
             'message': str(e)
         }), 400
+
 
 @app.route('/api/profile/faculty', methods=['POST'])
 def create_faculty_profile():
@@ -196,6 +208,7 @@ def create_faculty_profile():
             'message': str(e)
         }), 400
 
+
 @app.route('/api/profile/industry', methods=['POST'])
 def create_industry_profile():
     try:
@@ -232,6 +245,7 @@ def create_industry_profile():
             'message': str(e)
         }), 400
 
+
 @app.route('/api/profile/<user_type>/<user_id>', methods=['GET'])
 def get_profile(user_type, user_id):
     try:
@@ -255,15 +269,16 @@ def get_profile(user_type, user_id):
             'message': str(e)
         }), 400
 
+
 # ============================================
-# PROJECT MANAGEMENT ENDPOINTS
+# PROJECT ENDPOINTS
 # ============================================
 
 @app.route('/api/projects', methods=['POST'])
 def create_project():
     try:
         data = request.json
-        print("Received project data:", data)  # Debug print
+        print("Received project data:", data)
         
         project_data = {
             'title': data.get('title'),
@@ -284,11 +299,11 @@ def create_project():
             'status': 'open'
         }
         
-        print("Prepared project data:", project_data)  # Debug print
+        print("Prepared project data:", project_data)
         
         result = supabase.table('projects').insert(project_data).execute()
         
-        print("Insert result:", result)  # Debug print
+        print("Insert result:", result)
         
         return jsonify({
             'status': 'success',
@@ -297,9 +312,9 @@ def create_project():
         }), 201
         
     except Exception as e:
-        print("Error creating project:", str(e))  # Debug print
+        print("Error creating project:", str(e))
         import traceback
-        traceback.print_exc()  # Print full stack trace
+        traceback.print_exc()
         
         return jsonify({
             'status': 'error',
@@ -336,6 +351,7 @@ def get_projects():
             'message': str(e)
         }), 400
 
+
 @app.route('/api/projects/<project_id>', methods=['GET'])
 def get_project(project_id):
     try:
@@ -358,6 +374,7 @@ def get_project(project_id):
             'message': str(e)
         }), 400
 
+
 @app.route('/api/projects/user/<user_id>', methods=['GET'])
 def get_user_projects(user_id):
     try:
@@ -374,28 +391,90 @@ def get_user_projects(user_id):
             'message': str(e)
         }), 400
 
-@app.route('/api/projects/<project_id>', methods=['PUT'])
-def update_project(project_id):
+
+@app.route('/api/projects/<project_id>/owner', methods=['GET'])
+def get_project_owner(project_id):
     try:
-        data = request.json
-        result = supabase.table('projects').update(data).eq('id', project_id).execute()
+        project = supabase.table('projects').select('creator_id, creator_type').eq('id', project_id).execute()
+        
+        if not project.data:
+            return jsonify({'status': 'error', 'message': 'Project not found'}), 404
+        
+        creator_id = project.data[0]['creator_id']
+        creator_type = project.data[0]['creator_type']
+        
+        user = supabase.table('users').select('full_name, email, user_type').eq('id', creator_id).execute()
+        
+        profile = None
+        if creator_type == 'student':
+            profile = supabase.table('student_profiles').select('*').eq('user_id', creator_id).execute()
+        elif creator_type == 'faculty':
+            profile = supabase.table('faculty_profiles').select('*').eq('user_id', creator_id).execute()
+        elif creator_type == 'industry':
+            profile = supabase.table('industry_profiles').select('*').eq('user_id', creator_id).execute()
         
         return jsonify({
             'status': 'success',
-            'message': 'Project updated successfully',
-            'data': result.data[0]
+            'data': {
+                'user': user.data[0] if user.data else None,
+                'profile': profile.data[0] if profile and profile.data else None
+            }
         })
         
     except Exception as e:
+        print("Error fetching project owner:", str(e))
+        import traceback
+        traceback.print_exc()
+        
         return jsonify({
             'status': 'error',
             'message': str(e)
         }), 400
 
+
+@app.route('/api/projects/<project_id>', methods=['PUT'])
+def update_project(project_id):
+    try:
+        data = request.json
+        print("Updating project:", project_id, data)
+        
+        update_data = {}
+        allowed_fields = ['title', 'description', 'required_skills', 'required_expertise', 
+                         'student_count_needed', 'duration', 'time_commitment_hours', 
+                         'start_date', 'goals', 'deliverables', 'resources_available', 
+                         'domain', 'status']
+        
+        for field in allowed_fields:
+            if field in data:
+                update_data[field] = data[field]
+        
+        update_data['updated_at'] = 'now()'
+        
+        result = supabase.table('projects').update(update_data).eq('id', project_id).execute()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Project updated successfully',
+            'data': result.data[0] if result.data else None
+        })
+        
+    except Exception as e:
+        print("Error updating project:", str(e))
+        import traceback
+        traceback.print_exc()
+        
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 400
+
+
 @app.route('/api/projects/<project_id>', methods=['DELETE'])
 def delete_project(project_id):
     try:
-        supabase.table('projects').delete().eq('id', project_id).execute()
+        print("Deleting project:", project_id)
+        
+        result = supabase.table('projects').delete().eq('id', project_id).execute()
         
         return jsonify({
             'status': 'success',
@@ -403,10 +482,43 @@ def delete_project(project_id):
         })
         
     except Exception as e:
+        print("Error deleting project:", str(e))
+        import traceback
+        traceback.print_exc()
+        
         return jsonify({
             'status': 'error',
             'message': str(e)
         }), 400
+
+
+@app.route('/api/projects/<project_id>/stats', methods=['GET'])
+def get_project_stats(project_id):
+    try:
+        applications = supabase.table('applications').select('status').eq('project_id', project_id).execute()
+        
+        stats = {
+            'total': len(applications.data),
+            'pending': len([a for a in applications.data if a['status'] == 'pending']),
+            'accepted': len([a for a in applications.data if a['status'] == 'accepted']),
+            'rejected': len([a for a in applications.data if a['status'] == 'rejected'])
+        }
+        
+        return jsonify({
+            'status': 'success',
+            'data': stats
+        })
+        
+    except Exception as e:
+        print("Error fetching project stats:", str(e))
+        import traceback
+        traceback.print_exc()
+        
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 400
+
 
 # ============================================
 # APPLICATION ENDPOINTS
@@ -452,22 +564,35 @@ def create_application():
         }), 400
 
 
+@app.route('/api/applications/user/<user_id>', methods=['GET'])
+def get_user_applications(user_id):
+    try:
+        result = supabase.table('applications').select('*').eq('applicant_id', user_id).order('applied_at', desc=True).execute()
+        
+        return jsonify({
+            'status': 'success',
+            'data': result.data
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 400
+
+
 @app.route('/api/applications/project/<project_id>', methods=['GET'])
 def get_project_applications(project_id):
     try:
-        # Get applications for this project
         applications = supabase.table('applications').select('*').eq('project_id', project_id).order('applied_at', desc=True).execute()
         
-        # Fetch applicant details for each application
         applications_with_users = []
         for app in applications.data:
             applicant_id = app['applicant_id']
             applicant_type = app['applicant_type']
             
-            # Get user basic info
             user = supabase.table('users').select('full_name, email, user_type').eq('id', applicant_id).execute()
             
-            # Get profile info based on user type
             profile = None
             if applicant_type == 'student':
                 profile = supabase.table('student_profiles').select('*').eq('user_id', applicant_id).execute()
@@ -499,23 +624,7 @@ def get_project_applications(project_id):
         }), 400
 
 
-@app.route('/api/applications/user/<user_id>', methods=['GET'])
-def get_user_applications(user_id):
-    try:
-        result = supabase.table('applications').select('*').eq('applicant_id', user_id).order('applied_at', desc=True).execute()
-        
-        return jsonify({
-            'status': 'success',
-            'data': result.data
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 400
-
-@app.route('/api/applications/<application_id>', methods=['PUT'])
+@app.route('/api/applications/<application_id>/status', methods=['PUT'])
 def update_application_status(application_id):
     try:
         data = request.json
@@ -535,52 +644,10 @@ def update_application_status(application_id):
             'message': str(e)
         }), 400
 
-@app.route('/api/projects/<project_id>/owner', methods=['GET'])
-def get_project_owner(project_id):
-    try:
-        # Get project to find creator
-        project = supabase.table('projects').select('creator_id, creator_type').eq('id', project_id).execute()
-        
-        if not project.data:
-            return jsonify({'status': 'error', 'message': 'Project not found'}), 404
-        
-        creator_id = project.data[0]['creator_id']
-        creator_type = project.data[0]['creator_type']
-        
-        # Get user basic info
-        user = supabase.table('users').select('full_name, email, user_type').eq('id', creator_id).execute()
-        
-        # Get profile info based on user type
-        profile = None
-        if creator_type == 'student':
-            profile = supabase.table('student_profiles').select('*').eq('user_id', creator_id).execute()
-        elif creator_type == 'faculty':
-            profile = supabase.table('faculty_profiles').select('*').eq('user_id', creator_id).execute()
-        elif creator_type == 'industry':
-            profile = supabase.table('industry_profiles').select('*').eq('user_id', creator_id).execute()
-        
-        return jsonify({
-            'status': 'success',
-            'data': {
-                'user': user.data[0] if user.data else None,
-                'profile': profile.data[0] if profile and profile.data else None
-            }
-        })
-        
-    except Exception as e:
-        print("Error fetching project owner:", str(e))
-        import traceback
-        traceback.print_exc()
-        
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 400
 
 @app.route('/api/applications/check/<project_id>/<user_id>', methods=['GET'])
 def check_existing_application(project_id, user_id):
     try:
-        # Check if user already applied to this project
         existing = supabase.table('applications').select('*').eq('project_id', project_id).eq('applicant_id', user_id).execute()
         
         if existing.data and len(existing.data) > 0:

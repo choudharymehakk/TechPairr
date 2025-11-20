@@ -126,6 +126,16 @@ const Dashboard: React.FC = () => {
               </a>
             </div>
 
+            {/* My Projects - NEW/UPDATE */}
+            <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg hover:shadow-xl transition-all duration-200">
+              <div className="text-3xl mb-3">📁</div>
+              <h3 className="text-gray-800 font-semibold mb-2">My Projects</h3>
+              <a href="/my-projects" className="text-blue-600 hover:text-blue-500 underline font-medium">
+                Manage Projects
+              </a>
+            </div>
+
+
 
         {/* Logout */}
         <div className="text-center">
