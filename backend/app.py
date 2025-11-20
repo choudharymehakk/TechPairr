@@ -5,11 +5,17 @@ from config import SUPABASE_URL, SUPABASE_KEY
 import jwt
 import bcrypt
 from datetime import datetime, timedelta
-
+import os 
 
 app = Flask(__name__)
-CORS(app)
 
+CORS(app, origins=['*'])
+
+# Production config
+supabase = create_client(
+    os.environ.get('SUPABASE_URL', SUPABASE_URL),
+    os.environ.get('SUPABASE_KEY', SUPABASE_KEY)
+)
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -675,4 +681,6 @@ def check_existing_application(project_id, user_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+   
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
