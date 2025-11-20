@@ -9,7 +9,11 @@ import os
 
 app = Flask(__name__)
 
-CORS(app, origins=['*'])
+CORS(app, origins=[
+    'https://mentora-h34f.onrender.com', 
+    'http://localhost:5173'
+])
+
 
 # Production config
 supabase = create_client(
