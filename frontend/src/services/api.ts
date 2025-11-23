@@ -3,7 +3,7 @@ import axios from 'axios';
 // Use local backend for development, production for deployed app
 const API_BASE_URL = import.meta.env.DEV 
   ? 'http://localhost:5000/api'  // Local development
-  : 'https://mentora-backend-zulc.onrender.com/api';  // Production
+  : 'https://techpairr.onrender.com/api';  // Production
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
