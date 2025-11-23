@@ -14,7 +14,7 @@ app = Flask(__name__)
 CORS(app, 
      resources={r"/api/*": {
          "origins": [
-             "https://mentora-h34f.onrender.com",
+             "https://techpairr-frontend.onrender.com",
              "http://localhost:3000",
              "http://localhost:5173"
          ],
