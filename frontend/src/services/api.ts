@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://mentora-backend-zulc.onrender.com/api';
+// Use local backend for development, production for deployed app
+const API_BASE_URL = import.meta.env.DEV 
+  ? 'http://localhost:5000/api'  // Local development
+  : 'https://mentora-backend-zulc.onrender.com/api';  // Production
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -55,6 +58,11 @@ export const getProfile = (userType: string, userId: string) => api.get(`/profil
 export const checkProfileExists = (userType: string, userId: string) => api.get(`/profile/${userType}/${userId}`);
 
 // ============================================
+// EXPLORE / MATCHING API
+// ============================================
+export const getExploreMatches = (userId: string) => api.get(`/explore?user_id=${userId}`);
+
+// ============================================
 // PROJECT API
 // ============================================
 export const createProject = (data: any) => api.post('/projects', data);
@@ -76,3 +84,18 @@ export const updateApplicationStatus = (applicationId: string, status: string) =
 export const checkExistingApplication = (projectId: string, userId: string) => api.get(`/applications/check/${projectId}/${userId}`);
 
 export default api;
+
+// ============================================
+// MENTORSHIP REQUEST API
+// ============================================
+export const createMentorshipRequest = (data: any) => api.post('/mentorship-requests', data);
+export const getUserMentorshipRequests = (userId: string) => api.get(`/mentorship-requests/user/${userId}`);
+export const updateMentorshipRequestStatus = (requestId: string, status: string) => 
+  api.put(`/mentorship-requests/${requestId}/status`, { status });
+export const checkMentorshipRequestExists = (requesterId: string, recipientId: string) => 
+  api.get(`/mentorship-requests/check/${requesterId}/${recipientId}`);
+
+// ============================================
+// DASHBOARD STATS API
+// ============================================
+export const getDashboardStats = (userId: string) => api.get(`/stats/dashboard/${userId}`);

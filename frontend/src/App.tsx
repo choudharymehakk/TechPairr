@@ -12,6 +12,9 @@ import MyApplications from './pages/MyApplications'
 import ReceivedApplications from './pages/ReceivedApplications'
 import ActiveProjects from './pages/ActiveProjects'
 import MyProjects from './pages/MyProjects'
+import ExplorePage from './pages/ExplorePage';
+import ProfileView from './pages/ProfileView';
+import MentorshipRequestsPage from './pages/MentorshipRequestsPage';
 
 function App() {
   return (
@@ -30,6 +33,9 @@ function App() {
           <Route path="/received-applications" element={<ReceivedApplications />} />
           <Route path="/active-projects" element={<ActiveProjects />} />
           <Route path="/my-projects" element={<MyProjects />} />
+          <Route path="/explore" element={<ExplorePage />} />
+          <Route path="/profile/:userType/:userId" element={<ProfileView />} />
+          <Route path="/mentorship-requests" element={<MentorshipRequestsPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

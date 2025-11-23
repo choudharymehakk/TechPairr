@@ -7,12 +7,20 @@ import bcrypt
 from datetime import datetime, timedelta
 import os 
 
+
 app = Flask(__name__)
 
-CORS(app, origins=[
-    'https://mentora-h34f.onrender.com', 
-    'http://localhost:5173'
-])
+
+CORS(app, 
+     resources={r"/api/*": {
+         "origins": [
+             "https://mentora-h34f.onrender.com",
+             "http://localhost:3000",
+             "http://localhost:5173"
+         ],
+         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         "allow_headers": ["Content-Type", "Authorization"]
+     }})
 
 
 # Production config
@@ -21,8 +29,184 @@ supabase = create_client(
     os.environ.get('SUPABASE_KEY', SUPABASE_KEY)
 )
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# ============================================
+# MATCHING UTILITY FUNCTIONS
+# ============================================
+
+def calc_match_percent(set1, set2):
+    """Calculate percentage match between two lists of strings"""
+    set1 = set(s.lower().strip() for s in (set1 or []) if s)
+    set2 = set(s.lower().strip() for s in (set2 or []) if s)
+    if not set1 or not set2:
+        return 0
+    overlap = set1 & set2
+    if not overlap:
+        return 0
+    score = round((len(overlap) / max(len(set1), len(set2))) * 100)
+    return score
+
+
+def student_to_faculty(student_profile, faculty_profile):
+    """Calculate match score between student and faculty"""
+    skills_score = calc_match_percent(
+        student_profile.get('skills', []),
+        faculty_profile.get('expertise', [])  # Using 'expertise' not 'technical_expertise'
+    )
+    interests_score = calc_match_percent(
+        student_profile.get('interests', []),
+        faculty_profile.get('research_areas', [])
+    )
+    
+    why = []
+    if skills_score > 0:
+        overlap = set(student_profile.get('skills', [])) & set(faculty_profile.get('expertise', []))
+        why.append(f"Skills: {', '.join(overlap)}")
+    if interests_score > 0:
+        overlap = set(student_profile.get('interests', [])) & set(faculty_profile.get('research_areas', []))
+        why.append(f"Interests: {', '.join(overlap)}")
+    
+    match_score = round((skills_score + interests_score) / 2)
+    return {"match": match_score, "why": why}
+
+def student_to_industry(student_profile, industry_profile):
+    """Calculate match score between student and industry mentor"""
+    skills_score = calc_match_percent(
+        student_profile.get('skills', []),
+        industry_profile.get('expertise', [])
+    )
+    interests_score = calc_match_percent(
+        student_profile.get('interests', []),
+        industry_profile.get('mentoring_focus', [])
+    )
+    
+    why = []
+    if skills_score > 0:
+        overlap = set(student_profile.get('skills', [])) & set(industry_profile.get('expertise', []))
+        why.append(f"Skills: {', '.join(overlap)}")
+    if interests_score > 0:
+        overlap = set(student_profile.get('interests', [])) & set(industry_profile.get('mentoring_focus', []))
+        why.append(f"Interests: {', '.join(overlap)}")
+    
+    match_score = round((skills_score + interests_score) / 2)
+    return {"match": match_score, "why": why}
+
+def student_to_project(student_profile, project):
+    """Calculate match score between student and project"""
+    skills_score = calc_match_percent(
+        student_profile.get('skills', []),
+        project.get('required_skills', [])
+    )
+    expertise_score = calc_match_percent(
+        student_profile.get('interests', []),
+        project.get('required_expertise', [])
+    )
+    
+    why = []
+    if skills_score > 0:
+        overlap = set(student_profile.get('skills', [])) & set(project.get('required_skills', []))
+        why.append(f"Skills: {', '.join(overlap)}")
+    if expertise_score > 0:
+        overlap = set(student_profile.get('interests', [])) & set(project.get('required_expertise', []))
+        why.append(f"Interests: {', '.join(overlap)}")
+    
+    match_score = round((skills_score + expertise_score) / 2)
+    return {"match": match_score, "why": why}
+
+def faculty_to_student(faculty_profile, student_profile):
+    """Calculate match score between faculty and student"""
+    expertise_score = calc_match_percent(
+        faculty_profile.get('expertise', []),
+        student_profile.get('skills', [])
+    )
+    research_score = calc_match_percent(
+        faculty_profile.get('research_areas', []),
+        student_profile.get('interests', [])
+    )
+    
+    why = []
+    if expertise_score > 0:
+        overlap = set(faculty_profile.get('expertise', [])) & set(student_profile.get('skills', []))
+        why.append(f"Skills match: {', '.join(overlap)}")
+    if research_score > 0:
+        overlap = set(faculty_profile.get('research_areas', [])) & set(student_profile.get('interests', []))
+        why.append(f"Interest match: {', '.join(overlap)}")
+    
+    match_score = round((expertise_score + research_score) / 2)
+    return {"match": match_score, "why": why}
+
+
+def faculty_to_project(faculty_profile, project):
+    """Calculate match score between faculty and student project"""
+    expertise_score = calc_match_percent(
+        faculty_profile.get('expertise', []),
+        project.get('required_skills', [])
+    )
+    research_score = calc_match_percent(
+        faculty_profile.get('research_areas', []),
+        project.get('required_expertise', [])
+    )
+    
+    why = []
+    if expertise_score > 0:
+        overlap = set(faculty_profile.get('expertise', [])) & set(project.get('required_skills', []))
+        why.append(f"Skills: {', '.join(overlap)}")
+    if research_score > 0:
+        overlap = set(faculty_profile.get('research_areas', [])) & set(project.get('required_expertise', []))
+        why.append(f"Expertise: {', '.join(overlap)}")
+    
+    match_score = round((expertise_score + research_score) / 2)
+    return {"match": match_score, "why": why}
+
+def industry_to_student(industry_profile, student_profile):
+    """Calculate match score between industry mentor and student"""
+    expertise_score = calc_match_percent(
+        industry_profile.get('expertise', []),
+        student_profile.get('skills', [])
+    )
+    focus_score = calc_match_percent(
+        industry_profile.get('mentoring_focus', []),
+        student_profile.get('interests', [])
+    )
+    
+    why = []
+    if expertise_score > 0:
+        overlap = set(industry_profile.get('expertise', [])) & set(student_profile.get('skills', []))
+        why.append(f"Skills match: {', '.join(overlap)}")
+    if focus_score > 0:
+        overlap = set(industry_profile.get('mentoring_focus', [])) & set(student_profile.get('interests', []))
+        why.append(f"Interest match: {', '.join(overlap)}")
+    
+    match_score = round((expertise_score + focus_score) / 2)
+    return {"match": match_score, "why": why}
+
+
+def industry_to_project(industry_profile, project):
+    """Calculate match score between industry mentor and student project"""
+    expertise_score = calc_match_percent(
+        industry_profile.get('expertise', []),
+        project.get('required_skills', [])
+    )
+    focus_score = calc_match_percent(
+        industry_profile.get('mentoring_focus', []),
+        project.get('required_expertise', [])
+    )
+    
+    why = []
+    if expertise_score > 0:
+        overlap = set(industry_profile.get('expertise', [])) & set(project.get('required_skills', []))
+        why.append(f"Skills: {', '.join(overlap)}")
+    if focus_score > 0:
+        overlap = set(industry_profile.get('mentoring_focus', [])) & set(project.get('required_expertise', []))
+        why.append(f"Expertise: {', '.join(overlap)}")
+    
+    match_score = round((expertise_score + focus_score) / 2)
+    return {"match": match_score, "why": why}
+
+
+# ============================================
+# HEALTH & TEST ENDPOINTS
+# ============================================
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -44,6 +228,10 @@ def test_database():
             'message': str(e)
         }), 500
 
+
+# ============================================
+# AUTHENTICATION ENDPOINTS
+# ============================================
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -278,6 +466,157 @@ def get_profile(user_type, user_id):
             'status': 'error',
             'message': str(e)
         }), 400
+
+
+# ============================================
+# EXPLORE / MATCHING ENDPOINT
+# ============================================
+
+@app.route('/api/explore', methods=['GET'])
+def explore():
+    try:
+        user_id = request.args.get("user_id")
+        if not user_id:
+            return jsonify({"status": "error", "message": "Missing user_id parameter"}), 400
+
+        # Get user info
+        user_result = supabase.table('users').select('*').eq('id', user_id).execute()
+        if not user_result.data:
+            return jsonify({"status": "error", "message": "User not found"}), 404
+        
+        user = user_result.data[0]
+        user_type = user["user_type"]
+
+        # Get user's profile
+        profile_result = supabase.table(f"{user_type}_profiles").select('*').eq('user_id', user_id).execute()
+        if not profile_result.data:
+            return jsonify({"status": "error", "message": "Profile not found"}), 404
+        
+        profile = profile_result.data[0]
+        results = []
+
+        # STUDENT MATCHING: Show faculty, industry mentors, AND projects
+        if user_type == "student":
+            # Match with Faculty
+            faculty_profiles = supabase.table("faculty_profiles").select('*').execute().data or []
+            for faculty in faculty_profiles:
+                match = student_to_faculty(profile, faculty)
+                if match["match"] > 0:
+                    faculty_user = supabase.table('users').select('full_name, email').eq('id', faculty['user_id']).execute()
+                    results.append({
+                        "type": "faculty",
+                        "profile": faculty,
+                        "user": faculty_user.data[0] if faculty_user.data else None,
+                        "match": match["match"],
+                        "why": match["why"]
+                    })
+            
+            # Match with Industry Mentors
+            industry_profiles = supabase.table("industry_profiles").select('*').execute().data or []
+            for industry in industry_profiles:
+                match = student_to_industry(profile, industry)
+                if match["match"] > 0:
+                    industry_user = supabase.table('users').select('full_name, email').eq('id', industry['user_id']).execute()
+                    results.append({
+                        "type": "industry",
+                        "profile": industry,
+                        "user": industry_user.data[0] if industry_user.data else None,
+                        "match": match["match"],
+                        "why": match["why"]
+                    })
+            
+            # Match with Projects (Faculty & Industry)
+            projects = supabase.table("projects").select('*').eq('status', 'open').execute().data or []
+            for project in projects:
+                if project['creator_type'] in ['faculty', 'industry']:
+                    match = student_to_project(profile, project)
+                    if match["match"] > 0:
+                        creator = supabase.table('users').select('full_name, email').eq('id', project['creator_id']).execute()
+                        results.append({
+                            "type": "project",
+                            "project": project,
+                            "creator": creator.data[0] if creator.data else None,
+                            "match": match["match"],
+                            "why": match["why"]
+                        })
+
+        # FACULTY MATCHING: Show students and student projects
+        elif user_type == "faculty":
+            # Match with Students
+            student_profiles = supabase.table("student_profiles").select('*').execute().data or []
+            for student in student_profiles:
+                match = faculty_to_student(profile, student)
+                if match["match"] > 0:
+                    student_user = supabase.table('users').select('full_name, email').eq('id', student['user_id']).execute()
+                    results.append({
+                        "type": "student",
+                        "profile": student,
+                        "user": student_user.data[0] if student_user.data else None,
+                        "match": match["match"],
+                        "why": match["why"]
+                    })
+            
+            # Match with Student Projects
+            projects = supabase.table("projects").select('*').eq('status', 'open').eq('creator_type', 'student').execute().data or []
+            for project in projects:
+                match = faculty_to_project(profile, project)
+                if match["match"] > 0:
+                    creator = supabase.table('users').select('full_name, email').eq('id', project['creator_id']).execute()
+                    results.append({
+                        "type": "project",
+                        "project": project,
+                        "creator": creator.data[0] if creator.data else None,
+                        "match": match["match"],
+                        "why": match["why"]
+                    })
+
+        # INDUSTRY MATCHING: Show students and student projects - NEW!
+        elif user_type == "industry":
+            # Match with Students
+            student_profiles = supabase.table("student_profiles").select('*').execute().data or []
+            for student in student_profiles:
+                match = industry_to_student(profile, student)
+                if match["match"] > 0:
+                    student_user = supabase.table('users').select('full_name, email').eq('id', student['user_id']).execute()
+                    results.append({
+                        "type": "student",
+                        "profile": student,
+                        "user": student_user.data[0] if student_user.data else None,
+                        "match": match["match"],
+                        "why": match["why"]
+                    })
+            
+            # Match with Student Projects
+            projects = supabase.table("projects").select('*').eq('status', 'open').eq('creator_type', 'student').execute().data or []
+            for project in projects:
+                match = industry_to_project(profile, project)
+                if match["match"] > 0:
+                    creator = supabase.table('users').select('full_name, email').eq('id', project['creator_id']).execute()
+                    results.append({
+                        "type": "project",
+                        "project": project,
+                        "creator": creator.data[0] if creator.data else None,
+                        "match": match["match"],
+                        "why": match["why"]
+                    })
+
+        # Sort by match score (highest first)
+        results.sort(key=lambda r: -r["match"])
+        
+        return jsonify({
+            "status": "success",
+            "user_type": user_type,
+            "results": results
+        })
+        
+    except Exception as e:
+        print("Error in explore endpoint:", str(e))
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 
 # ============================================
@@ -683,8 +1022,248 @@ def check_existing_application(project_id, user_id):
             'message': str(e)
         }), 400
 
+# ============================================
+# MENTORSHIP REQUEST ENDPOINTS
+# ============================================
+
+@app.route('/api/mentorship-requests', methods=['POST'])
+def create_mentorship_request():
+    """Create a new mentorship request"""
+    try:
+        data = request.json
+        
+        # Validate required fields
+        required_fields = ['requester_id', 'requester_type', 'recipient_id', 'recipient_type', 'request_type']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'status': 'error', 'message': f'Missing required field: {field}'}), 400
+        
+        # Check if request already exists
+        existing = supabase.table('mentorship_requests').select('*').eq(
+            'requester_id', data['requester_id']
+        ).eq('recipient_id', data['recipient_id']).eq('status', 'pending').execute()
+        
+        if existing.data:
+            return jsonify({
+                'status': 'error',
+                'message': 'You already have a pending mentorship request with this user'
+            }), 400
+        
+        # Create the request
+        result = supabase.table('mentorship_requests').insert({
+            'requester_id': data['requester_id'],
+            'requester_type': data['requester_type'],
+            'recipient_id': data['recipient_id'],
+            'recipient_type': data['recipient_type'],
+            'request_type': data['request_type'],
+            'message': data.get('message', '')
+        }).execute()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Mentorship request sent successfully',
+            'data': result.data[0] if result.data else None
+        })
+        
+    except Exception as e:
+        print(f"Error creating mentorship request: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/mentorship-requests/user/<user_id>', methods=['GET'])
+def get_user_mentorship_requests(user_id):
+    """Get all mentorship requests for a user (sent and received)"""
+    try:
+        # Get requests sent by user
+        sent_requests = supabase.table('mentorship_requests').select(
+            '*, recipient:users!mentorship_requests_recipient_id_fkey(full_name, email)'
+        ).eq('requester_id', user_id).execute()
+        
+        # Get requests received by user
+        received_requests = supabase.table('mentorship_requests').select(
+            '*, requester:users!mentorship_requests_requester_id_fkey(full_name, email)'
+        ).eq('recipient_id', user_id).execute()
+        
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'sent': sent_requests.data or [],
+                'received': received_requests.data or []
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error fetching mentorship requests: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/mentorship-requests/<request_id>/status', methods=['PUT'])
+def update_mentorship_request_status(request_id):
+    """Update mentorship request status (accept/reject)"""
+    try:
+        data = request.json
+        status = data.get('status')
+        
+        if status not in ['accepted', 'rejected', 'cancelled']:
+            return jsonify({'status': 'error', 'message': 'Invalid status'}), 400
+        
+        result = supabase.table('mentorship_requests').update({
+            'status': status
+        }).eq('id', request_id).execute()
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Mentorship request {status}',
+            'data': result.data[0] if result.data else None
+        })
+        
+    except Exception as e:
+        print(f"Error updating mentorship request: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/mentorship-requests/check/<requester_id>/<recipient_id>', methods=['GET'])
+def check_mentorship_request_exists(requester_id, recipient_id):
+    """Check if a mentorship request already exists between two users"""
+    try:
+        result = supabase.table('mentorship_requests').select('*').eq(
+            'requester_id', requester_id
+        ).eq('recipient_id', recipient_id).eq('status', 'pending').execute()
+        
+        return jsonify({
+            'status': 'success',
+            'exists': len(result.data) > 0,
+            'data': result.data[0] if result.data else None
+        })
+        
+    except Exception as e:
+        print(f"Error checking mentorship request: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ============================================
+# DASHBOARD STATS ENDPOINTS
+# ============================================
+
+@app.route('/api/stats/dashboard/<user_id>', methods=['GET'])
+def get_dashboard_stats(user_id):
+    """Get dashboard statistics for a user"""
+    try:
+        # Get user info
+        user_result = supabase.table('users').select('*').eq('id', user_id).execute()
+        if not user_result.data:
+            return jsonify({"status": "error", "message": "User not found"}), 404
+        
+        user = user_result.data[0]
+        user_type = user["user_type"]
+        
+        stats = {
+            "matches": 0,
+            "applications": 0,
+            "projects": 0,
+            "requests": 0
+        }
+        
+        # Get matches count (from explore endpoint logic)
+        # For students: count faculty + industry mentors + projects with match > 0
+        # For faculty/industry: count students + student projects with match > 0
+        profile_result = supabase.table(f"{user_type}_profiles").select('*').eq('user_id', user_id).execute()
+        if profile_result.data:
+            profile = profile_result.data[0]
+            match_count = 0
+            
+            if user_type == "student":
+                # Count faculty matches
+                faculty_profiles = supabase.table("faculty_profiles").select('*').execute().data or []
+                for faculty in faculty_profiles:
+                    match = student_to_faculty(profile, faculty)
+                    if match["match"] > 0:
+                        match_count += 1
+                
+                # Count industry matches
+                industry_profiles = supabase.table("industry_profiles").select('*').execute().data or []
+                for industry in industry_profiles:
+                    match = student_to_industry(profile, industry)
+                    if match["match"] > 0:
+                        match_count += 1
+                
+                # Count project matches
+                projects = supabase.table("projects").select('*').eq('status', 'open').execute().data or []
+                for project in projects:
+                    if project['creator_type'] in ['faculty', 'industry']:
+                        match = student_to_project(profile, project)
+                        if match["match"] > 0:
+                            match_count += 1
+            
+            elif user_type == "faculty":
+                # Count student matches
+                student_profiles = supabase.table("student_profiles").select('*').execute().data or []
+                for student in student_profiles:
+                    match = faculty_to_student(profile, student)
+                    if match["match"] > 0:
+                        match_count += 1
+                
+                # Count student project matches
+                projects = supabase.table("projects").select('*').eq('status', 'open').eq('creator_type', 'student').execute().data or []
+                for project in projects:
+                    match = faculty_to_project(profile, project)
+                    if match["match"] > 0:
+                        match_count += 1
+            
+            elif user_type == "industry":
+                # Count student matches
+                student_profiles = supabase.table("student_profiles").select('*').execute().data or []
+                for student in student_profiles:
+                    match = industry_to_student(profile, student)
+                    if match["match"] > 0:
+                        match_count += 1
+                
+                # Count student project matches
+                projects = supabase.table("projects").select('*').eq('status', 'open').eq('creator_type', 'student').execute().data or []
+                for project in projects:
+                    match = industry_to_project(profile, project)
+                    if match["match"] > 0:
+                        match_count += 1
+            
+            stats["matches"] = match_count
+        
+        # Get applications count
+        if user_type == "student":
+            # Count applications sent by student
+            applications = supabase.table('applications').select('id').eq('applicant_id', user_id).execute()
+            stats["applications"] = len(applications.data) if applications.data else 0
+        else:
+            # Count applications received on user's projects
+            user_projects = supabase.table('projects').select('id').eq('creator_id', user_id).execute()
+            if user_projects.data:
+                project_ids = [p['id'] for p in user_projects.data]
+                applications = supabase.table('applications').select('id').in_('project_id', project_ids).execute()
+                stats["applications"] = len(applications.data) if applications.data else 0
+        
+        # Get projects count
+        user_projects = supabase.table('projects').select('id').eq('creator_id', user_id).eq('status', 'open').execute()
+        stats["projects"] = len(user_projects.data) if user_projects.data else 0
+        
+        # Get mentorship requests count (pending only)
+        mentorship_requests = supabase.table('mentorship_requests').select('id').eq(
+            'recipient_id', user_id
+        ).eq('status', 'pending').execute()
+        stats["requests"] = len(mentorship_requests.data) if mentorship_requests.data else 0
+        
+        return jsonify({
+            "status": "success",
+            "data": stats
+        })
+        
+    except Exception as e:
+        print(f"Error fetching dashboard stats: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 
 if __name__ == '__main__':
-   
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)

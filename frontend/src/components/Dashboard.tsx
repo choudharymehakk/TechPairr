@@ -1,15 +1,39 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { Users, TrendingUp, FolderOpen, Mail } from 'lucide-react'
+import { getDashboardStats } from '../services/api'
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth()
+  const [stats, setStats] = useState({
+    matches: 0,
+    applications: 0,
+    projects: 0,
+    requests: 0
+  })
+
+  // Fetch dashboard stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        if (user?.id) {
+          const response = await getDashboardStats(user.id);
+          if (response.data.status === 'success') {
+            setStats(response.data.data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, [user?.id]);
 
   if (!user) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4" style={{
-        background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-      }}>
-        <div className="text-center bg-white/90 backdrop-blur-lg rounded-2xl p-8 shadow-2xl">
+      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="text-center bg-white rounded-2xl p-8 shadow-xl">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Please login to access dashboard</h2>
           <a href="/" className="text-blue-600 hover:text-blue-500 underline font-medium">Go to Login</a>
         </div>
@@ -17,141 +41,209 @@ const Dashboard: React.FC = () => {
     )
   }
 
-  const getUserTypeInfo = () => {
-    switch (user.user_type) {
-      case 'student':
-        return { 
-          icon: '🎓', 
-          gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-          buttonGradient: 'from-blue-500 to-teal-500' 
-        }
-      case 'faculty':
-        return { 
-          icon: '👨‍🏫', 
-          gradient: 'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)',
-          buttonGradient: 'from-green-500 to-blue-500' 
-        }
-      case 'industry':
-        return { 
-          icon: '💼', 
-          gradient: 'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)',
-          buttonGradient: 'from-orange-500 to-red-500' 
-        }
-      default:
-        return { 
-          icon: '❓', 
-          gradient: 'linear-gradient(135deg, #e0e0e0 0%, #f0f0f0 100%)',
-          buttonGradient: 'from-gray-500 to-gray-700' 
-        }
-    }
-  }
-
-  const userInfo = getUserTypeInfo()
+  // Fixed background - same for all user types to prevent flickering
+  const dashboardGradient = 'from-slate-50 via-blue-50 to-cyan-50'
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4" style={{
-      background: userInfo.gradient
-    }}>
-      <div className="w-full max-w-6xl">
+    <div className={`min-h-screen bg-gradient-to-br ${dashboardGradient} py-8 px-4`}>
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br ${userInfo.buttonGradient} rounded-full mb-6 shadow-2xl`}>
-            <span className="text-3xl">{userInfo.icon}</span>
-          </div>
-          <h1 className="text-4xl font-bold text-gray-800 mb-4">
-            Welcome back, {user.full_name}!
-          </h1>
-          <p className="text-xl text-gray-700 capitalize">
-            {user.user_type} Dashboard
-          </p>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 mb-8 border border-white/50 shadow-2xl">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Profile Setup */}
-            <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg hover:shadow-xl transition-all duration-200">
-              <div className="text-3xl mb-3">📝</div>
-              <h3 className="text-gray-800 font-semibold mb-2">Profile Setup</h3>
-              <a href="/profile-setup" className="text-blue-600 hover:text-blue-500 underline font-medium">
-                Update Profile
-              </a>
+        <div className="mb-8">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-800 mb-2">
+                Welcome back, {user.full_name}! 👋
+              </h1>
+              <p className="text-lg text-gray-600 capitalize flex items-center gap-2">
+                <span className="text-2xl">
+                  {user.user_type === 'student' ? '🎓' : user.user_type === 'faculty' ? '👨‍🏫' : '💼'}
+                </span>
+                {user.user_type} Dashboard
+              </p>
             </div>
-            
-            {/* Create Project*/}
-            <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg hover:shadow-xl transition-all duration-200">
-              <div className="text-3xl mb-3">➕</div>
-              <h3 className="text-gray-800 font-semibold mb-2">Create Project</h3>
-              <a href="/create-project" className="text-blue-600 hover:text-blue-500 underline font-medium">
-                Post New Project
-              </a>
-            </div>
-            
-            {/* Browse */}
-            <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg hover:shadow-xl transition-all duration-200">
-              <div className="text-3xl mb-3">🔍</div>
-              <h3 className="text-gray-800 font-semibold mb-2">Browse Projects</h3>
-              <a href="/browse-projects" className="text-blue-600 hover:text-blue-500 underline font-medium">
-                Explore All Projects
-              </a>
-            </div>
-
-            {/* Analytics */}
-            <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg hover:shadow-xl transition-all duration-200">
-              <div className="text-3xl mb-3">📋</div>
-              <h3 className="text-gray-800 font-semibold mb-2">My Applications</h3>
-              <a href="/my-applications" className="text-blue-600 hover:text-blue-500 underline font-medium">
-                View Applications
-              </a>
-            </div>
+            <button
+              onClick={logout}
+              className="px-6 py-2.5 bg-white hover:bg-gray-50 text-gray-700 rounded-lg transition-colors shadow-md font-medium"
+            >
+              Logout
+            </button>
           </div>
         </div>
 
-            {/* Received Applications*/}
-            <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg hover:shadow-xl transition-all duration-200">
-              <div className="text-3xl mb-3">📥</div>
-              <h3 className="text-gray-800 font-semibold mb-2">Received Applications</h3>
-              <a href="/received-applications" className="text-blue-600 hover:text-blue-500 underline font-medium">
-                Manage Applications
-              </a>
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-600 text-sm font-medium">Matches</span>
+              <Users className="w-5 h-5 text-blue-500" />
             </div>
+            <p className="text-3xl font-bold text-gray-800">{stats.matches}</p>
+            <p className="text-xs text-gray-500 mt-1">Available matches</p>
+          </div>
 
-            {/* Active Projects - NEW */}
-            <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg hover:shadow-xl transition-all duration-200">
-              <div className="text-3xl mb-3">🚀</div>
-              <h3 className="text-gray-800 font-semibold mb-2">Active Projects</h3>
-              <a href="/active-projects" className="text-blue-600 hover:text-blue-500 underline font-medium">
-                View Projects
-              </a>
+          <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-600 text-sm font-medium">Applications</span>
+              <TrendingUp className="w-5 h-5 text-green-500" />
             </div>
+            <p className="text-3xl font-bold text-gray-800">{stats.applications}</p>
+            <p className="text-xs text-gray-500 mt-1">Total applications</p>
+          </div>
 
-            {/* My Projects - NEW/UPDATE */}
-            <div className="bg-white/60 p-6 rounded-xl border border-white/50 text-center shadow-lg hover:shadow-xl transition-all duration-200">
-              <div className="text-3xl mb-3">📁</div>
-              <h3 className="text-gray-800 font-semibold mb-2">My Projects</h3>
-              <a href="/my-projects" className="text-blue-600 hover:text-blue-500 underline font-medium">
-                Manage Projects
-              </a>
+          <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-600 text-sm font-medium">Projects</span>
+              <FolderOpen className="w-5 h-5 text-cyan-500" />
             </div>
+            <p className="text-3xl font-bold text-gray-800">{stats.projects}</p>
+            <p className="text-xs text-gray-500 mt-1">Active projects</p>
+          </div>
 
+          <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-600 text-sm font-medium">Requests</span>
+              <Mail className="w-5 h-5 text-orange-500" />
+            </div>
+            <p className="text-3xl font-bold text-gray-800">{stats.requests}</p>
+            <p className="text-xs text-gray-500 mt-1">Pending requests</p>
+          </div>
+        </div>
 
+        {/* Discover & Connect Section */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 mb-6 shadow-lg">
+          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span className="text-2xl">🔍</span>
+            Discover & Connect
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <a href="/explore" className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-5 hover:shadow-md transition-all duration-200 border border-blue-100">
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">🔎</div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">Explore Matches</h3>
+                  <p className="text-sm text-gray-600">Find mentors and opportunities</p>
+                </div>
+              </div>
+            </a>
 
-        {/* Logout */}
-        <div className="text-center">
-          <button
-            onClick={logout}
-            className="inline-flex items-center space-x-2 px-6 py-3 bg-white/60 hover:bg-white/80 text-gray-700 rounded-xl transition-all duration-200 border border-white/50 shadow-lg font-medium"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span>Logout</span>
-          </button>
+            <a href="/mentorship-requests" className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 hover:shadow-md transition-all duration-200 border border-purple-100">
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">💬</div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">Mentorship Requests</h3>
+                  <p className="text-sm text-gray-600">Manage mentorship connections</p>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        {/* Projects Section */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 mb-6 shadow-lg">
+          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span className="text-2xl">📚</span>
+            Projects
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <a href="/create-project" className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 hover:shadow-md transition-all duration-200 border border-green-100">
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">➕</div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">Create Project</h3>
+                  <p className="text-sm text-gray-600">Post a new project</p>
+                </div>
+              </div>
+            </a>
+
+            <a href="/browse-projects" className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-5 hover:shadow-md transition-all duration-200 border border-indigo-100">
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">🔍</div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">Browse Projects</h3>
+                  <p className="text-sm text-gray-600">Explore all projects</p>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        {/* Applications Section */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 mb-6 shadow-lg">
+          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span className="text-2xl">📋</span>
+            Applications
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <a href="/my-applications" className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-5 hover:shadow-md transition-all duration-200 border border-amber-100">
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">📋</div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">My Applications</h3>
+                  <p className="text-sm text-gray-600">Track your applications</p>
+                </div>
+              </div>
+            </a>
+
+            <a href="/received-applications" className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-xl p-5 hover:shadow-md transition-all duration-200 border border-rose-100">
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">📥</div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">Received Applications</h3>
+                  <p className="text-sm text-gray-600">Manage incoming applications</p>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        {/* My Work Section */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 mb-6 shadow-lg">
+          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span className="text-2xl">📁</span>
+            My Work
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <a href="/active-projects" className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-5 hover:shadow-md transition-all duration-200 border border-teal-100">
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">🚀</div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">Active Projects</h3>
+                  <p className="text-sm text-gray-600">View ongoing projects</p>
+                </div>
+              </div>
+            </a>
+
+            <a href="/my-projects" className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-5 hover:shadow-md transition-all duration-200 border border-violet-100">
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">📁</div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">My Projects</h3>
+                  <p className="text-sm text-gray-600">Manage your projects</p>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        {/* Profile Section */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span className="text-2xl">⚙️</span>
+            Settings
+          </h2>
+          <a href="/profile-setup" className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-5 hover:shadow-md transition-all duration-200 border border-gray-200 block">
+            <div className="flex items-center gap-3">
+              <div className="text-3xl">📝</div>
+              <div>
+                <h3 className="font-semibold text-gray-800">Profile Setup</h3>
+                <p className="text-sm text-gray-600">Update your profile information</p>
+              </div>
+            </div>
+          </a>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default Dashboard
