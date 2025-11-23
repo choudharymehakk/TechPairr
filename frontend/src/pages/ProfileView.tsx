@@ -7,7 +7,7 @@ export default function ProfileView() {
   const { userType, userId } = useParams<{ userType: string; userId: string }>();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
