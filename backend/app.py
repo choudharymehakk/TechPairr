@@ -9,6 +9,19 @@ import os
 
 
 app = Flask(__name__)
+
+
+CORS(
+    app,
+    resources={r"/api/*": {"origins": [
+        "https://techpairr-frontend.onrender.com",
+        "http://localhost:3000",
+        "http://localhost:5173"
+    ]}},
+    supports_credentials=True
+)
+
+
 @app.route("/")
 def index():
     return jsonify({"status": "ok", "message": "Mentora backend running"})
@@ -18,20 +31,27 @@ def index():
 def health():
     return jsonify({"status": "healthy"})
 
+
+    @app.route("/api/login", methods=["OPTIONS", "POST"])
+def login():
+    if request.method == "OPTIONS":
+        # flask-cors normally handles OPTIONS automatically, but keep this safe fallback
+        resp = make_response()
+        resp.headers["Access-Control-Allow-Origin"] = "https://techpairr-frontend.onrender.com"
+        resp.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+        return resp, 200
+
+    # Your real login logic goes here
+    data = request.get_json(silent=True) or {}
+    return jsonify({"ok": True, "received": data})
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
 
-CORS(app, 
-     resources={r"/api/*": {
-         "origins": [
-             "https://techpairr-frontend.onrender.com",
-             "http://localhost:3000",
-             "http://localhost:5173"
-         ],
-         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-         "allow_headers": ["Content-Type", "Authorization"]
-     }})
+
 
 
 # Production config
