@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-// Use local backend for development, production for deployed app
-const API_BASE_URL = import.meta.env.DEV 
-  ? 'http://localhost:5000/api'  // Local development
-  : 'https://mentora-backend-zulc.onrender.com/api';  // Production
+// Use local backend for development, production backend for deployed app
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.DEV 
+    ? 'http://localhost:5000/api'  // Local development
+    : 'https://mentora-backend-p9pf.onrender.com/api');  // Production (updated URL)
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -83,8 +84,6 @@ export const getProjectApplications = (projectId: string) => api.get(`/applicati
 export const updateApplicationStatus = (applicationId: string, status: string) => api.put(`/applications/${applicationId}/status`, { status });
 export const checkExistingApplication = (projectId: string, userId: string) => api.get(`/applications/check/${projectId}/${userId}`);
 
-export default api;
-
 // ============================================
 // MENTORSHIP REQUEST API
 // ============================================
@@ -99,3 +98,5 @@ export const checkMentorshipRequestExists = (requesterId: string, recipientId: s
 // DASHBOARD STATS API
 // ============================================
 export const getDashboardStats = (userId: string) => api.get(`/stats/dashboard/${userId}`);
+
+export default api;
