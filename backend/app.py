@@ -14,7 +14,8 @@ CORS(app, resources={r"/*": {
     "origins": [
         "http://localhost:5173",
         "http://localhost:3000",
-        "https://mentora-khaki.vercel.app"
+        "https://mentora-khaki.vercel.app",
+        "https://mentora1.vercel.app"
     ],
     "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"],
