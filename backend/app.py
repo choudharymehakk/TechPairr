@@ -7,21 +7,22 @@ import bcrypt
 from datetime import datetime, timedelta
 import os 
 
-
 app = Flask(__name__)
 
-
-CORS(app, 
-     resources={r"/api/*": {
-         "origins": [
-             "https://mentora-h34f.onrender.com",
-             "http://localhost:3000",
-             "http://localhost:5173"
-         ],
-         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-         "allow_headers": ["Content-Type", "Authorization"]
-     }})
-
+# CORS configuration for production and development
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "https://mentora3.onrender.com",
+            "https://*.onrender.com"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
 
 # Production config
 supabase = create_client(
