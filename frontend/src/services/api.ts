@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
   (import.meta.env.DEV 
     ? 'http://localhost:5000/api'  // Local development
-    : 'https://mentora-backend-p9pf.onrender.com/api');  // Production (updated URL)
+    : 'https://mentora-backend-1.onrender.com/api');  // Production (updated URL)
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
