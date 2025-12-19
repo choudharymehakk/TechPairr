@@ -173,9 +173,9 @@ Your support helps improve visibility and motivates further enhancements.
 ## 👤 Author
 
 **Ayush Rawat**  
-📧 [rawat.ayush.work@gmail.com](mailto:rawat.ayush.work@gmail.com)  
-🔗 [LinkedIn](https://www.linkedin.com/in/ayushrawat20)
+- 📧 [rawat.ayush.work@gmail.com](mailto:rawat.ayush.work@gmail.com)  
+- 🔗 [LinkedIn](https://www.linkedin.com/in/ayushrawat20)
 
 **Mehak Choudhary**
-📧 [choudharymehakk@gmail.com](mailto:choudharymehakk@gmail.com)  
-🔗 [LinkedIn](https://www.linkedin.com/in/mehak-choudhary)
+- 📧 [choudharymehakk@gmail.com](mailto:choudharymehakk@gmail.com)  
+- 🔗 [LinkedIn](https://www.linkedin.com/in/mehak-choudhary)
